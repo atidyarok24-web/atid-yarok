@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: atid-yarok-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: VITE_APP_ID
+        sync: false
+      - key: VITE_APP_SECRET
+        sync: false
+      - key: VITE_KIMI_AUTH_URL
+        sync: false
