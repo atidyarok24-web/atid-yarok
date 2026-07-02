@@ -24,15 +24,19 @@ import AdminPages from './pages/admin/AdminPages'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
+
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [pathname])
+
   return null
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { isLoggedIn } = useAdmin()
+
   if (!isLoggedIn) return <Navigate to="/admin" replace />
+
   return <>{children}</>
 }
 
@@ -43,8 +47,10 @@ function AppContent() {
   return (
     <>
       <ScrollToTop />
+
       {!isAdminRoute && <TopBar />}
       {!isAdminRoute && <Navbar />}
+
       <main>
         <Routes>
           {/* Public Routes */}
@@ -57,23 +63,36 @@ function AppContent() {
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/contact" element={<ContactPage />} />
 
-          {/* Admin Routes */}
+          {/* Admin Login */}
           <Route path="/admin" element={<AdminLogin />} />
-          <Route path="/admin/*" element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          }>
+
+          {/* Admin Routes */}
+          <Route
+            path="/admin/*"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          >
             <Route path="dashboard" element={<AdminHome />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="articles" element={<AdminArticles />} />
             <Route path="faq" element={<AdminFAQ />} />
             <Route path="gallery" element={<AdminGallery />} />
+
+            {/* תוכן האתר הרגיל */}
             <Route path="content" element={<AdminContent />} />
+
+            {/* לשונית נפרדת לאודות */}
+            <Route path="about-content" element={<AdminContent />} />
+
             <Route path="pages" element={<AdminPages />} />
+            <Route path="pages/:pageId" element={<AdminPages />} />
           </Route>
         </Routes>
       </main>
+
       {!isAdminRoute && <Footer />}
     </>
   )

@@ -8,6 +8,7 @@ import {
   FaQuestionCircle,
   FaImages,
   FaCog,
+  FaInfoCircle,
   FaFileAlt,
   FaSignOutAlt,
   FaHome,
@@ -19,8 +20,14 @@ const mainNavItems = [
   { to: '/admin/articles', label: 'מאמרים', icon: FaNewspaper },
   { to: '/admin/faq', label: 'שאלות ותשובות', icon: FaQuestionCircle },
   { to: '/admin/gallery', label: 'גלריה', icon: FaImages },
+
+  // תוכן עמוד הבית בלבד
   { to: '/admin/content', label: 'תוכן האתר', icon: FaCog },
-  { to: '/admin/pages', label: 'ניהול עמודים', icon: FaFileAlt },
+
+  // לשונית נפרדת לאודות
+  { to: '/admin/about-content', label: 'אודות', icon: FaInfoCircle },
+
+  { to: '/admin/pages', label: 'עמודים', icon: FaFileAlt },
 ]
 
 export default function AdminDashboard() {

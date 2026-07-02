@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { trpc } from '@/providers/trpc'
 import { FaSave, FaCheck, FaHome, FaInfoCircle, FaPhone } from 'react-icons/fa'
 import FileUploader from '../../components/FileUploader'
 
-type ActiveTab = 'home' | 'about' | 'contact'
+type ActivePage = 'home' | 'about' | 'contact'
 
 interface ContentForm {
   heroTitle: string
@@ -51,7 +52,16 @@ const emptyForm: ContentForm = {
   contactHours: '',
 }
 
+function getActivePage(pathname: string): ActivePage {
+  if (pathname.includes('/admin/about-content')) return 'about'
+  if (pathname.includes('/admin/contact-content')) return 'contact'
+  return 'home'
+}
+
 export default function AdminContent() {
+  const location = useLocation()
+  const activePage = getActivePage(location.pathname)
+
   const utils = trpc.useUtils()
   const { data: settings = [] } = trpc.content.settingsList.useQuery()
 
@@ -65,7 +75,6 @@ export default function AdminContent() {
 
   const [form, setForm] = useState<ContentForm>(emptyForm)
   const [saved, setSaved] = useState(false)
-  const [activeTab, setActiveTab] = useState<ActiveTab>('home')
 
   useEffect(() => {
     const getVal = (key: string) =>
@@ -96,24 +105,69 @@ export default function AdminContent() {
   }, [settings])
 
   const handleSave = () => {
-    const entries = Object.entries(form) as [string, string][]
+    let entries: [string, string][] = []
+
+    if (activePage === 'home') {
+      entries = [
+        ['heroTitle', form.heroTitle],
+        ['heroSubtitle', form.heroSubtitle],
+        ['heroBody', form.heroBody],
+        ['heroVideo', form.heroVideo],
+        ['heroFallback', form.heroFallback],
+      ]
+    }
+
+    if (activePage === 'about') {
+      entries = [
+        ['aboutLabel', form.aboutLabel],
+        ['aboutTitle', form.aboutTitle],
+        ['aboutSubtitle', form.aboutSubtitle],
+        ['aboutDescription', form.aboutDescription],
+        ['aboutStoryTitle', form.aboutStoryTitle],
+        ['aboutStoryP1', form.aboutStoryP1],
+        ['aboutStoryP2', form.aboutStoryP2],
+        ['aboutStoryP3', form.aboutStoryP3],
+      ]
+    }
+
+    if (activePage === 'contact') {
+      entries = [
+        ['contactPhone1', form.contactPhone1],
+        ['contactPhone2', form.contactPhone2],
+        ['contactEmail', form.contactEmail],
+        ['contactAddress', form.contactAddress],
+        ['contactHours', form.contactHours],
+      ]
+    }
 
     entries.forEach(([key, value]) => {
       setMut.mutate({ key, value })
     })
   }
 
-  const tabClass = (tab: ActiveTab) =>
-    `flex items-center gap-2 px-5 py-3 rounded-xl font-button transition-all border-none cursor-pointer ${
-      activeTab === tab
-        ? 'bg-green-700 text-white shadow-sm'
-        : 'bg-white text-green-800 hover:bg-green-50 border border-cream-200'
-    }`
+  const pageTitle =
+    activePage === 'about'
+      ? 'אודות'
+      : activePage === 'contact'
+        ? 'פרטי קשר'
+        : 'תוכן האתר'
+
+  const pageIcon =
+    activePage === 'about' ? (
+      <FaInfoCircle />
+    ) : activePage === 'contact' ? (
+      <FaPhone />
+    ) : (
+      <FaHome />
+    )
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="font-heading-lg text-green-900">עריכת תוכן האתר</h2>
+        <h2 className="font-heading-lg text-green-900 flex items-center gap-2">
+          {pageIcon}
+          {pageTitle}
+        </h2>
 
         <button
           onClick={handleSave}
@@ -135,21 +189,7 @@ export default function AdminContent() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-6">
-        <button onClick={() => setActiveTab('home')} className={tabClass('home')}>
-          <FaHome /> עמוד ראשי
-        </button>
-
-        <button onClick={() => setActiveTab('about')} className={tabClass('about')}>
-          <FaInfoCircle /> אודות האתר
-        </button>
-
-        <button onClick={() => setActiveTab('contact')} className={tabClass('contact')}>
-          <FaPhone /> פרטי קשר
-        </button>
-      </div>
-
-      {activeTab === 'home' && (
+      {activePage === 'home' && (
         <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
           <h3 className="font-heading-md text-green-900 mb-4">
             עמוד ראשי — Hero
@@ -217,9 +257,9 @@ export default function AdminContent() {
         </div>
       )}
 
-      {activeTab === 'about' && (
+      {activePage === 'about' && (
         <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
-          <h3 className="font-heading-md text-green-900 mb-4">אודות האתר</h3>
+          <h3 className="font-heading-md text-green-900 mb-4">אודות</h3>
 
           <div className="space-y-4">
             <div>
@@ -337,7 +377,7 @@ export default function AdminContent() {
         </div>
       )}
 
-      {activeTab === 'contact' && (
+      {activePage === 'contact' && (
         <div className="bg-white rounded-xl p-6 shadow-sm">
           <h3 className="font-heading-md text-green-900 mb-4">פרטי קשר</h3>
 
