@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
+import { trpc } from '@/providers/trpc'
 import SectionHeader from '../components/SectionHeader'
 import ScrollReveal from '../components/ScrollReveal'
 
@@ -43,7 +44,10 @@ function AboutHeroCanvas() {
         ctx.moveTo(0, h * 0.2 + i * h * 0.15)
 
         for (let x = 0; x <= w; x += 2) {
-          const y = h * 0.2 + i * h * 0.15 + Math.sin(x * ribbon.freq + time * ribbon.speed) * ribbon.amp
+          const y =
+            h * 0.2 +
+            i * h * 0.15 +
+            Math.sin(x * ribbon.freq + time * ribbon.speed) * ribbon.amp
           ctx.lineTo(x, y)
         }
 
@@ -77,6 +81,36 @@ function AboutHeroCanvas() {
 export default function AboutPage() {
   const heroRef = useRef<HTMLDivElement>(null)
 
+  const { data: settings = [] } = trpc.content.settingsList.useQuery()
+
+  const getVal = (key: string, fallback: string) =>
+    settings.find((s) => s.key === key)?.value || fallback
+
+  const aboutLabel = getVal('aboutLabel', 'אודות החברה')
+  const aboutTitle = getVal('aboutTitle', 'עתיד ירוק בע"מ')
+  const aboutSubtitle = getVal(
+    'aboutSubtitle',
+    'מובילים בתחום מערכות הדשא הסינתטי בישראל'
+  )
+  const aboutDescription = getVal(
+    'aboutDescription',
+    'עתיד ירוק בע"מ (ATID YAROK LTD) היא חברה מובילה בתחום ייבוא, שיווק והתקנה של מערכות דשא סינתטי איכותי בישראל. החברה נוסדה בשנת 2009 ומאז צברה ניסיון עצום עם למעלה מ-250,000 מ"ר של דשא סינתטי מותקן ויותר מ-27 מגרשים מאושרי FIFA.'
+  )
+
+  const aboutStoryTitle = getVal('aboutStoryTitle', 'הסיפור שלנו')
+  const aboutStoryP1 = getVal(
+    'aboutStoryP1',
+    'עתיד ירוק בע"מ נוסדה בשנת 2009 על ידי עבד אלרחים ג׳אבר, מנכ"ל ומייסד החברה, המוביל בתחום מערכות הדשא הסינתטי בישראל עם למעלה מ-17 שנות ניסיון. החברה מתמחה בהקמת מגרשי ספורט איכותיים ברמה בינלאומית, לרבות מגרשי כדורגל, הוקי, ראגבי ומשטחים רב-תכליתיים.'
+  )
+  const aboutStoryP2 = getVal(
+    'aboutStoryP2',
+    'אנו שותפים מורשים של GreenFields ההולנדית — חברת TenCate Grass, מובילה עולמית בתחום מערכות דשא סינתטי לספורט. שותפות זו מעניקה לנו גישה לטכנולוגיות הדשא המתקדמות ביותר בעולם, לרבות סיבי V-Shape פטנטיים, מערכות ארוגות (Woven), ומוצרי ONE-DNA™ המהווים פריצת דרך בתחום הקיימות.'
+  )
+  const aboutStoryP3 = getVal(
+    'aboutStoryP3',
+    'החברה מחזיקה בהסמכות הגבוהות ביותר בתעשייה: FIFA Preferred Provider, FIFA Quality Pro, ISO 9001:2015 והסמכת GreenFields Authorized. כל המוצרים שלנו עוברים בדיקות מעבדה מוסמכות (Sports Labs, Labosport) לפני התקנה.'
+  )
+
   useEffect(() => {
     if (!heroRef.current) return
 
@@ -99,19 +133,23 @@ export default function AboutPage() {
         className="relative bg-green-950 min-h-[70vh] flex items-center overflow-hidden"
       >
         <AboutHeroCanvas />
+
         <div className="relative z-10 content-max w-full px-4 py-32">
           <div className="max-w-[700px]">
             <span className="animate-in font-label text-green-400 block mb-3">
-              <span className="text-green-500 mr-1">&#9679;</span> אודות החברה
+              <span className="text-green-500 mr-1">&#9679;</span> {aboutLabel}
             </span>
+
             <h1 className="animate-in font-display text-white mb-4">
-              עתיד ירוק בע&quot;מ
+              {aboutTitle}
             </h1>
+
             <h2 className="animate-in font-heading-lg text-green-300 font-normal mb-6">
-              מובילים בתחום מערכות הדשא הסינתטי בישראל
+              {aboutSubtitle}
             </h2>
+
             <p className="animate-in font-body-lg text-white/80">
-              עתיד ירוק בע&quot;מ (ATID YAROK LTD) היא חברה מובילה בתחום ייבוא, שיווק והתקנה של מערכות דשא סינתטי איכותי בישראל. החברה נוסדה בשנת 2009 ומאז צברה ניסיון עצום עם למעלה מ-250,000 מ&quot;ר של דשא סינתטי מותקן ויותר מ-27 מגרשים מאושרי FIFA.
+              {aboutDescription}
             </p>
           </div>
         </div>
@@ -123,19 +161,17 @@ export default function AboutPage() {
           <ScrollReveal>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
               <div>
-                <h2 className="font-heading-xl text-green-900 mb-6">הסיפור שלנו</h2>
+                <h2 className="font-heading-xl text-green-900 mb-6">
+                  {aboutStoryTitle}
+                </h2>
+
                 <div className="space-y-4 font-body text-stone-600">
-                  <p>
-                    עתיד ירוק בע&quot;מ נוסדה בשנת 2009 על ידי עבד אלרחים ג&apos;אבר, מנכ&quot;ל ומייסד החברה, המוביל בתחום מערכות הדשא הסינתטי בישראל עם למעלה מ-17 שנות ניסיון. החברה מתמחה בהקמת מגרשי ספורט איכותיים ברמה בינלאומית, לרבות מגרשי כדורגל, הוקי, ראגבי ומשטחים רב-תכליתיים.
-                  </p>
-                  <p>
-                    אנו שותפים מורשים של <strong>GreenFields</strong> (הולנד — חברת TenCate Grass), מובילה עולמית בתחום מערכות דשא סינתטי לספורט. שותפות זו מעניקה לנו גישה לטכנולוגיות הדשא המתקדמות ביותר בעולם, לרבות סיבי V-Shape פטנטיים, מערכות ארוגות (Woven), ומוצרי ONE-DNA™ המהווים פריצת דרך בתחום הקיימות.
-                  </p>
-                  <p>
-                    החברה מחזיקה בהסמכות הגבוהות ביותר בתעשייה: <strong>FIFA Preferred Provider</strong>, <strong>FIFA Quality Pro</strong>, <strong>ISO 9001:2015</strong>, והסמכת GreenFields Authorized. כל המוצרים שלנו עוברים בדיקות מעבדה מוסמכות (Sports Labs, Labosport) לפני התקנה.
-                  </p>
+                  <p>{aboutStoryP1}</p>
+                  <p>{aboutStoryP2}</p>
+                  <p>{aboutStoryP3}</p>
                 </div>
               </div>
+
               <div className="rounded-[20px] overflow-hidden shadow-lg">
                 <img
                   src="/images/about-team.jpg"
@@ -164,25 +200,78 @@ export default function AboutPage() {
           <ScrollReveal stagger={0.1}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
-                { year: '2026', name: 'מגרש אבו סנאן', type: 'FIFA Quality Pro', area: '15,600 מ"ר' },
-                { year: '2025', name: 'מגרש אבו סנאן', type: 'FIFA Quality Pro', area: '7,620 מ"ר' },
-                { year: '2024', name: 'מגרש טייבה', type: 'FIFA Quality', area: '5,200 מ"ר' },
-                { year: '2024', name: 'מעונות נהל"ג ראש העין', type: 'FIFA תקן', area: '1,200 מ"ר' },
-                { year: '2023', name: 'מגרש כפר יאסיף', type: 'FIFA Quality', area: '7,620 מ"ר' },
-                { year: '2020', name: 'מגרש תמר הירדן', type: 'FIFA Quality', area: '7,500 מ"ר' },
-                { year: '2019', name: 'מגרש צפת', type: 'FIFA Quality', area: '8,600 מ"ר' },
-                { year: '2019', name: 'מגרש חולון', type: 'FIFA Quality', area: '7,800 מ"ר' },
-                { year: '2017', name: 'מגרש ירושלים', type: 'FIFA Quality', area: '8,650 מ"ר' },
+                {
+                  year: '2026',
+                  name: 'מגרש אבו סנאן',
+                  type: 'FIFA Quality Pro',
+                  area: '15,600 מ"ר',
+                },
+                {
+                  year: '2025',
+                  name: 'מגרש אבו סנאן',
+                  type: 'FIFA Quality Pro',
+                  area: '7,620 מ"ר',
+                },
+                {
+                  year: '2024',
+                  name: 'מגרש טייבה',
+                  type: 'FIFA Quality',
+                  area: '5,200 מ"ר',
+                },
+                {
+                  year: '2024',
+                  name: 'מעונות נהל"ג ראש העין',
+                  type: 'FIFA תקן',
+                  area: '1,200 מ"ר',
+                },
+                {
+                  year: '2023',
+                  name: 'מגרש כפר יאסיף',
+                  type: 'FIFA Quality',
+                  area: '7,620 מ"ר',
+                },
+                {
+                  year: '2020',
+                  name: 'מגרש תמר הירדן',
+                  type: 'FIFA Quality',
+                  area: '7,500 מ"ר',
+                },
+                {
+                  year: '2019',
+                  name: 'מגרש צפת',
+                  type: 'FIFA Quality',
+                  area: '8,600 מ"ר',
+                },
+                {
+                  year: '2019',
+                  name: 'מגרש חולון',
+                  type: 'FIFA Quality',
+                  area: '7,800 מ"ר',
+                },
+                {
+                  year: '2017',
+                  name: 'מגרש ירושלים',
+                  type: 'FIFA Quality',
+                  area: '8,650 מ"ר',
+                },
               ].map((project, i) => (
                 <div
                   key={i}
                   className="bg-cream-50 rounded-xl p-6 border border-cream-200 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-label text-green-700 text-[0.6rem]">{project.year}</span>
-                    <span className="font-label text-amber-500 text-[0.6rem]">{project.type}</span>
+                    <span className="font-label text-green-700 text-[0.6rem]">
+                      {project.year}
+                    </span>
+                    <span className="font-label text-amber-500 text-[0.6rem]">
+                      {project.type}
+                    </span>
                   </div>
-                  <h4 className="font-heading-sm text-green-800">{project.name}</h4>
+
+                  <h4 className="font-heading-sm text-green-800">
+                    {project.name}
+                  </h4>
+
                   <p className="font-body-sm text-stone-500">{project.area}</p>
                 </div>
               ))}
@@ -216,8 +305,12 @@ export default function AboutPage() {
                   key={i}
                   className="bg-white rounded-xl p-5 shadow-sm text-center hover:shadow-md hover:-translate-y-1 transition-all"
                 >
-                  <span className="font-heebo font-bold text-green-700 text-sm block mb-1">{cert.name}</span>
-                  <span className="font-body-sm text-stone-500">{cert.desc}</span>
+                  <span className="font-heebo font-bold text-green-700 text-sm block mb-1">
+                    {cert.name}
+                  </span>
+                  <span className="font-body-sm text-stone-500">
+                    {cert.desc}
+                  </span>
                 </div>
               ))}
             </div>
@@ -229,29 +322,51 @@ export default function AboutPage() {
       <section className="bg-cream-50 section-padding">
         <div className="content-max">
           <div className="text-center mb-12">
-            <SectionHeader
-              label="יתרונות"
-              heading="למה לבחור בנו"
-              centered
-            />
+            <SectionHeader label="יתרונות" heading="למה לבחור בנו" centered />
           </div>
 
           <ScrollReveal stagger={0.1}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-[900px] mx-auto">
               {[
-                { icon: '🏆', title: 'FIFA Preferred Provider', desc: 'אחת מהחברות הבודדות בישראל עם הסמכת הספק המועדף של FIFA' },
-                { icon: '⚽', title: '27+ מגרשי FIFA', desc: 'יותר מ-27 מגרשים מאושרי FIFA ברחבי הארץ' },
-                { icon: '📏', title: '250,000+ מ"ר', desc: 'למעלה מרבע מיליון מטר מרובע של דשא סינתטי מותקן' },
-                { icon: '🧪', title: 'בדיקות מעבדה מוסמכות', desc: 'כל המוצרים עוברים בדיקות Sports Labs ו-Labosport' },
-                { icon: '🤝', title: 'שותפויות עולמיות', desc: 'שיתוף פעולה עם GreenFields ההולנדית — חברת TenCate Grass' },
-                { icon: '🛡️', title: 'אחריות מקיפה', desc: '5-8 שנות אחריות על כל המוצרים וההתקנות' },
+                {
+                  icon: '🏆',
+                  title: 'FIFA Preferred Provider',
+                  desc: 'אחת מהחברות הבודדות בישראל עם הסמכת הספק המועדף של FIFA',
+                },
+                {
+                  icon: '⚽',
+                  title: '27+ מגרשי FIFA',
+                  desc: 'יותר מ-27 מגרשים מאושרי FIFA ברחבי הארץ',
+                },
+                {
+                  icon: '📏',
+                  title: '250,000+ מ"ר',
+                  desc: 'למעלה מרבע מיליון מטר מרובע של דשא סינתטי מותקן',
+                },
+                {
+                  icon: '🧪',
+                  title: 'בדיקות מעבדה מוסמכות',
+                  desc: 'כל המוצרים עוברים בדיקות Sports Labs ו-Labosport',
+                },
+                {
+                  icon: '🤝',
+                  title: 'שותפויות עולמיות',
+                  desc: 'שיתוף פעולה עם GreenFields ההולנדית — חברת TenCate Grass',
+                },
+                {
+                  icon: '🛡️',
+                  title: 'אחריות מקיפה',
+                  desc: '5-8 שנות אחריות על כל המוצרים וההתקנות',
+                },
               ].map((card, i) => (
                 <div
                   key={i}
                   className="bg-white rounded-[20px] p-8 border border-cream-200 text-center hover:shadow-md transition-shadow"
                 >
                   <span className="text-4xl block mb-4">{card.icon}</span>
-                  <h3 className="font-heading-md text-green-800 mb-2">{card.title}</h3>
+                  <h3 className="font-heading-md text-green-800 mb-2">
+                    {card.title}
+                  </h3>
                   <p className="font-body text-stone-600">{card.desc}</p>
                 </div>
               ))}
