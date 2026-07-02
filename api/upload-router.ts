@@ -1,62 +1,142 @@
 import { z } from "zod";
 import { createRouter, publicQuery } from "./middleware";
-import { writeFile, mkdir, readdir, unlink, stat } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
 
-const PUBLIC_DIR = join(process.cwd(), "public");
-const IMAGES_DIR = join(PUBLIC_DIR, "images");
-const VIDEOS_DIR = join(PUBLIC_DIR, "videos");
+const SIRV_TOKEN_URL = "https://api.sirv.com/v2/token";
+const SIRV_UPLOAD_URL = "https://api.sirv.com/v2/files/upload";
 
-// Ensure directories exist
-for (const dir of [IMAGES_DIR, VIDEOS_DIR]) {
-  if (!existsSync(dir)) {
-    await mkdir(dir, { recursive: true });
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is required`);
   }
+  return value;
+}
+
+function sanitizeFilename(filename: string) {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return `${Date.now()}-${safe}`;
+}
+
+function normalizeFolder(folder: string) {
+  const clean = folder.trim().replace(/^\/+|\/+$/g, "");
+  return `/${clean || "Images"}`;
+}
+
+function getContentType(filename: string) {
+  const ext = filename.toLowerCase().split(".").pop();
+
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  if (ext === "gif") return "image/gif";
+  if (ext === "svg") return "image/svg+xml";
+  if (ext === "mp4") return "video/mp4";
+  if (ext === "webm") return "video/webm";
+
+  return "application/octet-stream";
+}
+
+async function getSirvToken() {
+  const clientId = requiredEnv("SIRV_CLIENT_ID");
+  const clientSecret = requiredEnv("SIRV_CLIENT_SECRET");
+
+  const response = await fetch(SIRV_TOKEN_URL, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      clientId,
+      clientSecret,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Sirv token failed: ${response.status} ${text}`);
+  }
+
+  const data = await response.json();
+
+  if (!data.token) {
+    throw new Error("Sirv token response did not include token");
+  }
+
+  return data.token as string;
+}
+
+async function uploadToSirv(options: {
+  filename: string;
+  buffer: Buffer;
+  contentType: string;
+  folder: string;
+}) {
+  const token = await getSirvToken();
+  const sirvPath = `${normalizeFolder(options.folder)}/${options.filename}`;
+
+  const response = await fetch(
+    `${SIRV_UPLOAD_URL}?filename=${encodeURIComponent(sirvPath)}`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": options.contentType,
+      },
+      body: options.buffer,
+    },
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Sirv upload failed: ${response.status} ${text}`);
+  }
+
+  const cdnBase = requiredEnv("SIRV_CDN_BASE").replace(/\/+$/g, "");
+
+  return {
+    path: sirvPath,
+    url: `${cdnBase}${sirvPath}`,
+  };
 }
 
 export const uploadRouter = createRouter({
-  // Upload any file (image or video) from base64
   uploadFile: publicQuery
-    .input(z.object({
-      filename: z.string().min(1),
-      data: z.string().min(1), // base64 data
-      folder: z.string().default("images"),
-    }))
+    .input(
+      z.object({
+        filename: z.string().min(1),
+        data: z.string().min(1),
+        folder: z.string().default("Images"),
+      }),
+    )
     .mutation(async ({ input }) => {
-      const targetDir = join(PUBLIC_DIR, input.folder);
-      if (!existsSync(targetDir)) {
-        await mkdir(targetDir, { recursive: true });
-      }
-
-      // Remove data:xxx/xxx;base64, prefix if present
       const base64Data = input.data.replace(/^data:[^;]+;base64,/, "");
       const buffer = Buffer.from(base64Data, "base64");
 
-      // Validate it's not empty
       if (buffer.length === 0) {
         throw new Error("Empty file");
       }
 
-      // Sanitize filename
-      const safeName = input.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filepath = join(targetDir, safeName);
+      const safeName = sanitizeFilename(input.filename);
+      const contentType = getContentType(input.filename);
 
-      await writeFile(filepath, buffer);
+      const result = await uploadToSirv({
+        filename: safeName,
+        buffer,
+        contentType,
+        folder: process.env.SIRV_UPLOAD_FOLDER || input.folder || "Images",
+      });
 
-      return { url: `/${input.folder}/${safeName}` };
+      return { url: result.url };
     }),
 
-  // Upload video file from base64
   uploadVideo: publicQuery
-    .input(z.object({
-      filename: z.string().min(1),
-      data: z.string().min(1),
-    }))
+    .input(
+      z.object({
+        filename: z.string().min(1),
+        data: z.string().min(1),
+      }),
+    )
     .mutation(async ({ input }) => {
-      const targetDir = VIDEOS_DIR;
-
-      // Remove data:video/xxx;base64, prefix if present
       const base64Data = input.data.replace(/^data:video\/[^;]+;base64,/, "");
       const buffer = Buffer.from(base64Data, "base64");
 
@@ -64,55 +144,36 @@ export const uploadRouter = createRouter({
         throw new Error("Empty video file");
       }
 
-      const safeName = input.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filepath = join(targetDir, safeName);
+      const safeName = sanitizeFilename(input.filename);
+      const contentType = getContentType(input.filename);
 
-      await writeFile(filepath, buffer);
+      const result = await uploadToSirv({
+        filename: safeName,
+        buffer,
+        contentType,
+        folder: "Videos",
+      });
 
-      return { url: `/videos/${safeName}` };
+      return { url: result.url };
     }),
 
-  // List files in a folder
   listFiles: publicQuery
-    .input(z.object({ folder: z.string().default("images") }).optional())
-    .query(async ({ input }) => {
-      const folder = input?.folder ?? "images";
-      const targetDir = join(PUBLIC_DIR, folder);
-
-      if (!existsSync(targetDir)) return [];
-
-      const files = await readdir(targetDir);
-      const items = [];
-      for (const name of files) {
-        const filepath = join(targetDir, name);
-        const s = await stat(filepath);
-        if (s.isFile()) {
-          items.push({
-            name,
-            url: `/${folder}/${name}`,
-            size: s.size,
-          });
-        }
-      }
-      return items;
+    .input(z.object({ folder: z.string().default("Images") }).optional())
+    .query(async () => {
+      return [];
     }),
 
-  // Delete a file
   deleteFile: publicQuery
-    .input(z.object({ filename: z.string().min(1), folder: z.string().default("images") }))
-    .mutation(async ({ input }) => {
-      const filepath = join(PUBLIC_DIR, input.folder, input.filename);
-
-      // Security: ensure file is inside public directory
-      if (!filepath.startsWith(PUBLIC_DIR)) {
-        throw new Error("Invalid path");
-      }
-
-      if (existsSync(filepath)) {
-        await unlink(filepath);
-        return { success: true };
-      }
-
-      return { success: false, message: "File not found" };
+    .input(
+      z.object({
+        filename: z.string().min(1),
+        folder: z.string().default("Images"),
+      }),
+    )
+    .mutation(async () => {
+      return {
+        success: false,
+        message: "Delete from Sirv is not implemented yet",
+      };
     }),
 });
