@@ -4,6 +4,10 @@ import { createRouter, publicQuery } from "./middleware";
 const SIRV_TOKEN_URL = "https://api.sirv.com/v2/token";
 const SIRV_UPLOAD_URL = "https://api.sirv.com/v2/files/upload";
 
+type SirvTokenResponse = {
+  token?: string;
+};
+
 function requiredEnv(name: string) {
   const value = process.env[name];
   if (!value) {
@@ -36,6 +40,13 @@ function getContentType(filename: string) {
   return "application/octet-stream";
 }
 
+function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
+  return buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength,
+  ) as ArrayBuffer;
+}
+
 async function getSirvToken() {
   const clientId = requiredEnv("SIRV_CLIENT_ID");
   const clientSecret = requiredEnv("SIRV_CLIENT_SECRET");
@@ -56,13 +67,13 @@ async function getSirvToken() {
     throw new Error(`Sirv token failed: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as SirvTokenResponse;
 
   if (!data.token) {
     throw new Error("Sirv token response did not include token");
   }
 
-  return data.token as string;
+  return data.token;
 }
 
 async function uploadToSirv(options: {
@@ -82,7 +93,7 @@ async function uploadToSirv(options: {
         authorization: `Bearer ${token}`,
         "content-type": options.contentType,
       },
-      body: options.buffer,
+      body: bufferToArrayBuffer(options.buffer),
     },
   );
 
